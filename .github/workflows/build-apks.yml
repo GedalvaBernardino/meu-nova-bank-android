@@ -39,7 +39,9 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;37.0.0'
-          ln -sfn "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+          cp -a "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+          if [ -f "$ANDROID_HOME/platforms/android-37/package.xml" ]; then sed -i 's/platforms;android-37\.0/platforms;android-37/g' "$ANDROID_HOME/platforms/android-37/package.xml"; fi
+          if [ -f "$ANDROID_HOME/platforms/android-37/source.properties" ]; then sed -i 's/AndroidVersion.ApiLevel=37\.0/AndroidVersion.ApiLevel=37/' "$ANDROID_HOME/platforms/android-37/source.properties"; fi
       - name: Unpack source
         run: unzip -q "${{ matrix.archive }}"
       - name: Set up Gradle
