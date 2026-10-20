@@ -34,10 +34,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Install Android API 37
-        run: sdkmanager 'platforms;android-37' 'build-tools;37.0.0'
+      - name: Install Android SDK packages
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37' 'build-tools;37.0.0'
       - name: Unpack source
         run: unzip -q "${{ matrix.archive }}"
       - name: Set up Gradle
