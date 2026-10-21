@@ -19,12 +19,12 @@ jobs:
       matrix:
         include:
           - name: Meu Nova Bank
-            archive: MEU-NOVA-BANK-Android-Studio-v0.2.15.zip
-            project: MEU-NOVA-BANK-Android-Studio-v0.2.15
+            archive: MEU-NOVA-BANK-Android-Studio-v0.2.16.zip
+            project: MEU-NOVA-BANK-Android-Studio-v0.2.16
             artifact: meu-nova-bank-apk
           - name: Meu Nova Bank Admin
-            archive: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.7.zip
-            project: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.7
+            archive: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.8.zip
+            project: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.8
             artifact: meu-nova-bank-admin-apk
     steps:
       - name: Checkout repository
