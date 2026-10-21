@@ -111,7 +111,7 @@ async function hmac(secret: string, message: string): Promise<string> {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           const account = typeof input.account_number === "string" ? input.account_number.trim() : "";
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               if (!/^\d{6}$/.test(account)) return fail(400, "ACCOUNT_INVALID");
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const lookup = await fetch(`${url}/rest/v1/customer_profiles?select=user_id,account_number,display_name,account_status&account_number=eq.${encodeURIComponent(account)}&limit=1`, { headers: adminHeaders });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const lookup = await fetch(`${url}/rest/v1/customer_profiles?select=user_id,account_number,display_name,account_status,theme_tier&account_number=eq.${encodeURIComponent(account)}&limit=1`, { headers: adminHeaders });
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       if (!lookup.ok) return fail(404, "ACCOUNT_NOT_FOUND"); const rows = await lookup.json();
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           if (!Array.isArray(rows) || !rows[0] || typeof rows[0].user_id !== "string") return fail(404, "ACCOUNT_NOT_FOUND");
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               const target = rows[0];
@@ -131,50 +131,105 @@ const getAuthUser = async () => {
     display_name: target.display_name || "",
     email: typeof authUser?.email === "string" ? authUser.email : "",
     phone: typeof metadata.phone === "string" ? metadata.phone : (typeof authUser?.phone === "string" ? authUser.phone : ""),
-    email_confirmed: !!authUser?.email_confirmed_at
+    email_confirmed: !!authUser?.email_confirmed_at,
+    theme_tier: target.theme_tier || "basic",
+    is_admin: await rpc("meunova_is_bank_admin_user", { p_user_id: target.user_id }) === true
   } });
 }
 if (action === "update_profile") {
   const displayName = typeof input.display_name === "string" ? input.display_name.trim().replace(/\s+/g, " ") : "";
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const phone = typeof input.phone === "string" ? input.phone.replace(/\D/g, "") : "";
-  if (displayName.length < 2 || displayName.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || (phone !== "" && !/^\d{10,11}$/.test(phone))) return fail(400, "PROFILE_DATA_INVALID");
+  const themeTier = typeof input.theme_tier === "string" ? input.theme_tier.trim().toLowerCase() : "";
+  const allowedThemes = ["basic", "select", "platinum", "gold", "black"];
+  if (displayName.length < 2 || displayName.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || (phone !== "" && !/^\d{10,11}$/.test(phone)) || !allowedThemes.includes(themeTier)) return fail(400, "PROFILE_DATA_INVALID");
   const authUser = await getAuthUser();
   const oldEmail = typeof authUser?.email === "string" ? authUser.email.toLowerCase() : "";
   const oldMetadata = authUser?.user_metadata && typeof authUser.user_metadata === "object" ? authUser.user_metadata : {};
   const oldPhone = typeof oldMetadata.phone === "string" ? oldMetadata.phone.replace(/\D/g, "") : (typeof authUser?.phone === "string" ? authUser.phone.replace(/\D/g, "") : "");
+  const oldTheme = typeof target.theme_tier === "string" ? target.theme_tier : "basic";
   const nameChanged = displayName !== (target.display_name || "");
   const emailChanged = email !== oldEmail;
   const phoneChanged = phone !== oldPhone;
+  const themeChanged = themeTier !== oldTheme;
   if (emailChanged && input.confirm_email_change !== true) return fail(400, "EMAIL_CONFIRMATION_REQUIRED");
-  if (!nameChanged && !emailChanged && !phoneChanged) return reply({ ok: true, changed: false, audit_ok: true });
+  if (!nameChanged && !emailChanged && !phoneChanged && !themeChanged) return reply({ ok: true, changed: false, audit_ok: true, theme_tier: themeTier });
 
-  if (nameChanged) {
-    const namePatch = await patch({ display_name: displayName, updated_at: new Date().toISOString() });
-    if (!namePatch.ok) return fail(409, "PROFILE_UPDATE_FAILED");
+  if (nameChanged || themeChanged) {
+    const profilePatch: any = { updated_at: new Date().toISOString() };
+    if (nameChanged) profilePatch.display_name = displayName;
+    if (themeChanged) profilePatch.theme_tier = themeTier;
+    if (!(await patch(profilePatch)).ok) return fail(409, "PROFILE_UPDATE_FAILED");
   }
-  const authPatchBody: any = { user_metadata: { ...oldMetadata, display_name: displayName, phone } };
-  if (emailChanged) { authPatchBody.email = email; authPatchBody.email_confirm = true; }
-  const authUpdate = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(target.user_id)}`, {
-    method: "PUT", headers: adminHeaders, body: JSON.stringify(authPatchBody)
-  });
-  if (!authUpdate.ok) {
-    if (nameChanged) await patch({ display_name: target.display_name || "", updated_at: new Date().toISOString() }).catch(() => null);
-    const errorBody = await authUpdate.text().catch(() => "");
-    if (/already registered|already exists|duplicate/i.test(errorBody)) return fail(409, "EMAIL_ALREADY_IN_USE");
-    return fail(409, "PROFILE_UPDATE_FAILED");
+  if (nameChanged || emailChanged || phoneChanged) {
+    const authPatchBody: any = { user_metadata: { ...oldMetadata, display_name: displayName, phone } };
+    if (emailChanged) { authPatchBody.email = email; authPatchBody.email_confirm = true; }
+    const authUpdate = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(target.user_id)}`, {
+      method: "PUT", headers: adminHeaders, body: JSON.stringify(authPatchBody)
+    });
+    if (!authUpdate.ok) {
+      if (nameChanged || themeChanged) {
+        const rollback: any = { updated_at: new Date().toISOString() };
+        if (nameChanged) rollback.display_name = target.display_name || "";
+        if (themeChanged) rollback.theme_tier = oldTheme;
+        await patch(rollback).catch(() => null);
+      }
+      const errorBody = await authUpdate.text().catch(() => "");
+      if (/already registered|already exists|duplicate/i.test(errorBody)) return fail(409, "EMAIL_ALREADY_IN_USE");
+      return fail(409, "PROFILE_UPDATE_FAILED");
+    }
   }
+  let auditOk = true;
+  if (nameChanged || emailChanged || phoneChanged) {
+    try {
+      const logged = await rpc("meunova_record_admin_action", {
+        p_actor: user.id,
+        p_target: target.user_id,
+        p_action: "profile_update",
+        p_details: { display_name_changed: nameChanged, email_changed: emailChanged, phone_changed: phoneChanged, email_confirmed_by_admin: emailChanged }
+      });
+      auditOk = logged !== false;
+    } catch { auditOk = false; }
+  }
+  if (themeChanged) {
+    try {
+      const logged = await rpc("meunova_record_admin_action", {
+        p_actor: user.id, p_target: target.user_id, p_action: "theme_change",
+        p_details: { theme_tier_changed: true }
+      });
+      auditOk = auditOk && logged !== false;
+    } catch { auditOk = false; }
+  }
+  return reply({ ok: true, audit_ok: auditOk, email_changed: emailChanged, theme_tier: themeTier });
+}
+if (action === "set_admin_role") {
+  if (typeof input.is_admin !== "boolean") return fail(400, "ADMIN_ROLE_INVALID");
+  const desired = input.is_admin;
+  const current = await rpc("meunova_is_bank_admin_user", { p_user_id: target.user_id }) === true;
+  if (current === desired) return reply({ ok: true, changed: false, is_admin: desired, audit_ok: true });
+  let changed = false;
+  try {
+    changed = await rpc("meunova_set_bank_admin_role", { p_actor: user.id, p_target: target.user_id, p_is_admin: desired }) === true;
+  } catch { return fail(409, "ADMIN_ROLE_CHANGE_REJECTED"); }
+  if (!changed) return fail(409, "ADMIN_ROLE_CHANGE_REJECTED");
   let auditOk = true;
   try {
     const logged = await rpc("meunova_record_admin_action", {
-      p_actor: user.id,
-      p_target: target.user_id,
-      p_action: "profile_update",
-      p_details: { display_name_changed: nameChanged, email_changed: emailChanged, phone_changed: phoneChanged, email_confirmed_by_admin: emailChanged }
+      p_actor: user.id, p_target: target.user_id, p_action: "admin_role_change",
+      p_details: { is_admin: desired }
     });
     auditOk = logged !== false;
   } catch { auditOk = false; }
-  return reply({ ok: true, audit_ok: auditOk, email_changed: emailChanged });
+  return reply({ ok: true, changed: true, is_admin: desired, audit_ok: auditOk });
+}
+if (action === "audit_password_recovery") {
+  try {
+    const logged = await rpc("meunova_record_admin_action", {
+      p_actor: user.id, p_target: target.user_id, p_action: "password_recovery_requested",
+      p_details: { requested: true }
+    });
+    return reply({ ok: true, audit_ok: logged !== false });
+  } catch { return fail(503, "AUDIT_LOG_FAILED"); }
 }
 if (action === "change_account") {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         const nextAccount = typeof input.new_account_number === "string" ? input.new_account_number.trim() : "";
