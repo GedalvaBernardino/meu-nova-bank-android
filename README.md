@@ -4,8 +4,8 @@ Este repositório guarda os fontes dos projetos **Meu Nova Bank** e **Meu Nova B
 
 ## Fontes atuais
 
-- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.16.zip`
-- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.8.zip`
+- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.17.zip`
+- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.9.zip`
 
 ## Gerar os APKs
 
@@ -31,3 +31,12 @@ O app aceita números de conta de exatamente 6 dígitos, conforme o banco e o al
 ## Segurança e escopo
 
 O APK Admin deve ser usado apenas em ambiente de teste autorizado; não o distribua nem o use para alterar dados de terceiros. Este projeto não é uma instituição financeira e não deve ser usado para coletar credenciais bancárias reais.
+
+
+## Crédito e Transferência DEM demonstrativos
+
+A partir das versões 0.2.17 (app) e 0.2.9 (Admin), os limites por conta para empréstimo pessoal (R$ 102–R$ 90.000) e Meu Nova Card (R$ 152–R$ 90.000) podem ser configurados no Admin; zero desativa. Os limites são configurações demonstrativas, não ofertas ou crédito real. O app consulta apenas os limites do próprio usuário sujeitos a RLS. A taxa informada para transferência no cartão é exibida como 3,7% por operação demonstrativa; nenhuma operação está habilitada. A taxa informada para empréstimo é 4,8%, mas a base/período não foi especificada: nenhum cálculo de parcelas/custo é apresentado.
+
+Transferência DEM permanece em modo de revisão demonstrativa: não debita nem credita saldo. Não existe RPC/servidor de execução implementado nesta versão; habilitar movimento de saldo exigiria uma transação atômica validada no servidor, destinatário interno ativo, saldo suficiente, idempotência e lançamentos de ledger de ambos os lados.
+
+A migration e a Edge Function fonte para limites estão em `supabase/migrations/20261023_credit_products_and_dem_review.sql` e `supabase/functions/admin-users-index.ts`. A migration não foi aplicada nem a Edge Function implantada por este pacote local.
