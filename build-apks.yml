@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '*.zip'
+      - 'supabase/migrations/*.sql'
       - '.github/workflows/build-apks.yml'
 
 permissions:
@@ -19,12 +20,12 @@ jobs:
       matrix:
         include:
           - name: Meu Nova Bank
-            archive: MEU-NOVA-BANK-Android-Studio-v0.2.20.zip
-            project: MEU-NOVA-BANK-Android-Studio-v0.2.20
+            archive: MEU-NOVA-BANK-Android-Studio-v0.2.23.zip
+            project: MEU-NOVA-BANK-Android-Studio-v0.2.23
             artifact: meu-nova-bank-apk
           - name: Meu Nova Bank Admin
-            archive: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.12.zip
-            project: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.12
+            archive: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.13.zip
+            project: MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.13
             artifact: meu-nova-bank-admin-apk
     steps:
       - name: Checkout repository
