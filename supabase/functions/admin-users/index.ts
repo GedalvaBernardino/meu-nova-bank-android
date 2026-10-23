@@ -111,7 +111,7 @@ async function hmac(secret: string, message: string): Promise<string> {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           const account = typeof input.account_number === "string" ? input.account_number.trim() : "";
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               if (!/^\d{6}$/.test(account)) return fail(400, "ACCOUNT_INVALID");
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const lookup = await fetch(`${url}/rest/v1/customer_profiles?select=user_id,account_number,display_name,account_status,theme_tier,overdraft_admin_limit,overdraft_user_limit,overdraft_active&account_number=eq.${encodeURIComponent(account)}&limit=1`, { headers: adminHeaders });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const lookup = await fetch(`${url}/rest/v1/customer_profiles?select=user_id,account_number,display_name,account_status,theme_tier,overdraft_admin_limit,overdraft_user_limit,overdraft_active,personal_loan_limit,card_credit_limit&account_number=eq.${encodeURIComponent(account)}&limit=1`, { headers: adminHeaders });
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       if (!lookup.ok) return fail(404, "ACCOUNT_NOT_FOUND"); const rows = await lookup.json();
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           if (!Array.isArray(rows) || !rows[0] || typeof rows[0].user_id !== "string") return fail(404, "ACCOUNT_NOT_FOUND");
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               const target = rows[0];
@@ -136,6 +136,8 @@ const getAuthUser = async () => {
     overdraft_admin_limit: target.overdraft_admin_limit ?? "0.00",
     overdraft_user_limit: target.overdraft_user_limit ?? "0.00",
     overdraft_active: target.overdraft_active === true,
+    personal_loan_limit: target.personal_loan_limit ?? "0.00",
+    card_credit_limit: target.card_credit_limit ?? "0.00",
     is_admin: await rpc("meunova_is_bank_admin_user", { p_user_id: target.user_id }) === true
   } });
 }
@@ -204,6 +206,21 @@ if (action === "update_profile") {
     } catch { auditOk = false; }
   }
   return reply({ ok: true, audit_ok: auditOk, email_changed: emailChanged, theme_tier: themeTier });
+}
+if (action === "set_personal_loan_limit" || action === "set_card_credit_limit") {
+  const isLoan = action === "set_personal_loan_limit";
+  const rawLimit = typeof input.limit === "string" || typeof input.limit === "number" ? String(input.limit).trim().replace(",", ".") : "";
+  if (!/^[0-9]{1,6}(?:[.][0-9]{1,2})?$/.test(rawLimit)) return fail(400, "PRODUCT_LIMIT_INVALID");
+  const limit = Number(rawLimit), minimum = isLoan ? 102 : 152;
+  if (!Number.isFinite(limit) || (limit !== 0 && (limit < minimum || limit > 90000))) return fail(400, "PRODUCT_LIMIT_INVALID");
+  try {
+    const fn = isLoan ? "meunova_admin_set_personal_loan_limit" : "meunova_admin_set_card_credit_limit";
+    return reply(await rpc(fn, { p_admin_user_id: user.id, p_target_user_id: target.user_id, p_limit: rawLimit }));
+  } catch (e) {
+    const reason = String(e ?? "");
+    if (/target account is not active/i.test(reason)) return fail(409, "TARGET_ACCOUNT_INACTIVE");
+    return fail(409, "PRODUCT_LIMIT_REJECTED");
+  }
 }
 if (action === "set_overdraft_limit") {
   const rawLimit = typeof input.max_limit === "string" || typeof input.max_limit === "number" ? String(input.max_limit).trim().replace(",", ".") : "";
