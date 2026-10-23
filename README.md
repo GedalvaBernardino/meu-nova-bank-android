@@ -3,13 +3,13 @@
 Fontes dos apps Meu Nova Bank e Meu Nova Bank Admin. Os APKs são builds debug por GitHub Actions.
 
 ## Versões atuais
-- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.19.zip`
-- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.11.zip`
+- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.20.zip` (versionCode 31)
+- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.12.zip` (versionCode 14)
 
 ## Limites demonstrativos e Transferência DEM
 O Admin configura limite demonstrativo individual para empréstimo pessoal (R$ 102–R$ 90.000) e Meu Nova Card (R$ 152–R$ 90.000); zero desativa. Os limites não constituem oferta, aprovação ou crédito real. O app exibe limite de cartão, utilização e disponibilidade. Transferência DEM pode debitar o saldo demonstrativo do remetente e creditar a conta Meu Nova Bank ativa de destino no ledger de demonstração, atomicamente; há proteção idempotente para repetição da mesma solicitação e lançamentos de débito/crédito.
 
-A opção Meu Nova Card para transferência aplica taxa demonstrativa de 3,7% por operação sobre o valor transferido, adicionada ao valor debitado do limite, que é apresentado antes da confirmação. A taxa informada para empréstimo é 4,8%, mas sua base/período não foi especificada: nenhum cálculo de parcelas ou custo total é mostrado.
+A opção Meu Nova Card para transferência aplica taxa demonstrativa de 3,7% por operação sobre o valor transferido, adicionada ao valor debitado do limite, que é apresentado antes da confirmação. A chamada autenticada tenta renovar uma sessão expirada e reutiliza o mesmo identificador idempotente em repetição; em caso de resposta ambígua, confira o extrato antes de repetir. A taxa informada para empréstimo é 4,8%, mas sua base/período não foi especificada: nenhum cálculo de parcelas ou custo total é mostrado.
 
 **Tudo é somente demonstrativo:** não alcança Pix, bancos, dinheiro, processadores nem redes de pagamento reais. Não use para movimentação financeira. Nenhuma operação de teste em conta real é realizada.
 
