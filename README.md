@@ -3,7 +3,7 @@
 Fontes dos apps Meu Nova Bank e Meu Nova Bank Admin. Os APKs são builds debug por GitHub Actions.
 
 ## Versões atuais
-- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.23.zip` (versionCode 34; build on demand)
+- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.24.zip` (versionCode 35; correção de confirmação de limite DEM; build on demand)
 - App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.13.zip` (versionCode 15; pendente de build)
 
 ## Limites demonstrativos e Transferência DEM
@@ -24,3 +24,6 @@ Antes de uso, aplique `supabase/migrations/20261023_demo_card_lifecycle.sql`. N�
 
 ## Build APK
 Abra Actions → Build Android APKs → Run workflow. Baixe `meu-nova-bank-apk` e `meu-nova-bank-admin-apk`. APKs debug assinados com chave de depuração; artefatos retidos por 30 dias.
+
+## Correção de consumo do cartão em Transferência DEM (v0.2.24)
+A RPC retorna os valores atualizados `card_credit_limit`, `card_credit_used` e `card_credit_available`, derivados após a atualização atômica da linha do remetente. O registro de idempotência guarda a mesma resposta, evitando incrementos em repetição. O app atualiza o resumo diretamente da resposta, e erros/linhas ausentes na leitura do perfil deixam o uso de cartão bloqueado, em vez de exibir limite zero. A migration `supabase/migrations/20261025_dem_card_credit_usage_response.sql` deve ser revisada e aplicada manualmente antes de contar com a atualização via RPC; não está implantada pelo build.
