@@ -3,8 +3,8 @@
 Fontes dos apps Meu Nova Bank e Meu Nova Bank Admin. Os APKs são builds debug por GitHub Actions.
 
 ## Versões atuais
-- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.18.zip`
-- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.10.zip`
+- App do cliente: `MEU-NOVA-BANK-Android-Studio-v0.2.19.zip`
+- App Admin: `MEU-NOVA-BANK-ADMIN-Android-Studio-v0.2.11.zip`
 
 ## Limites demonstrativos e Transferência DEM
 O Admin configura limite demonstrativo individual para empréstimo pessoal (R$ 102–R$ 90.000) e Meu Nova Card (R$ 152–R$ 90.000); zero desativa. Os limites não constituem oferta, aprovação ou crédito real. O app exibe limite de cartão, utilização e disponibilidade. Transferência DEM pode debitar o saldo demonstrativo do remetente e creditar a conta Meu Nova Bank ativa de destino no ledger de demonstração, atomicamente; há proteção idempotente para repetição da mesma solicitação e lançamentos de débito/crédito.
